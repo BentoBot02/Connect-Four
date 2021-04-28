@@ -18,9 +18,16 @@ async def on_ready():
     print(f'{bot.user} has connected to Discord!')
 
 @bot.command(
+    name="help",
+    aliases=["h"])
+async def help_command(ctx):
+    embedVar = discord.Embed(title="Command Info: `c4!play`", description="Alias:`p`\nFormat: `c4!play <user>`\n\nStart a game of Connect 4 with another user.")
+    await ctx.channel.send(embed=embedVar)
+
+@bot.command(
     name="play",
     aliases=["p"])
-async def start_command(ctx, *args):
+async def play_command(ctx, *args):
 
     if len(args) == 0:
         await ctx.channel.send("<@" + str(ctx.author.id) + ">, you can't play by yourself.")
@@ -41,7 +48,7 @@ async def start_command(ctx, *args):
         return
 
     embedVar = discord.Embed(title="Connect Four", description="<@" + str(id) + ">, please accept or decline the game of Connect 4 with <@" + str(ctx.author.id) + "> to continue.") 
-    message = await ctx.channel.send(content="<@" + str(id) + ">, would you like to play Connect Four with <@" + str(ctx.author.id) + ">", embed=embedVar)
+    message = await ctx.channel.send(content="<@" + str(id) + ">, would you like to play Connect Four with <@" + str(ctx.author.id) + ">?", embed=embedVar)
     await message.add_reaction('❌')
     await message.add_reaction('✅')
 
@@ -59,7 +66,7 @@ async def start_command(ctx, *args):
         def moveDurationCheck(m):
             return m.channel == ctx.channel and m.author == ctx.author
 
-        await message.edit(embed=discord.Embed(title="Connect Four", description="<@" + str(ctx.author.id) + ">, input the max amount of time for each turn.\nMinimum: 5 seconds\nMaximum: 1 hour\nFormat: MM:SS"))
+        await message.edit(embed=discord.Embed(title="Connect Four", description="<@" + str(ctx.author.id) + ">, input the max amount of time for each turn.\nMinimum: `5 seconds`\nMaximum: `1 hour`\nFormat: `mm:ss`\neg. 30 seconds = `00:30`"))
         
         duration = 0
         
@@ -77,11 +84,11 @@ async def start_command(ctx, *args):
                 valid = True
                 duration = total
             except ValueError:
-                await ctx.channel.send("<@" + str(Ctx.author.id) + ">, please input a valid duration.")
+                await ctx.channel.send("<@" + str(ctx.author.id) + ">, please input a valid duration.")
                 pass
 
         def firstCheck(react, user):
-            return user.id == id and (react.emoji == '1️⃣' or react.emoji == '2️⃣')
+            return react.message == message and user.id == id and (react.emoji == '1️⃣' or react.emoji == '2️⃣')
 
         message = await ctx.channel.send(embed=discord.Embed(title="Connect Four", description="<@" + str(id) + ">, choose whether you will go first or second."))
         await message.add_reaction('1️⃣')
@@ -98,6 +105,78 @@ async def start_command(ctx, *args):
         else:
             playerIDs = [ctx.author.id, id]
 
+        playerColors = ["🔴 ", "🟠 ", "🟡 ", "🟢 ", "🔵 ", "🟣 ", "🟤 "]
+        hexColors = [0xDD2E44, 0xF4900C, 0xFDCB58, 0x78B159, 0x55ACEE, 0xAA8ED6, 0xC1694F]
+        player1Color = 0
+        player2Color = 0
+
+        message = await ctx.channel.send(embed=discord.Embed(title="Connect Four", description="<@" + str(ctx.author.id) + ">, choose which color you would like to be."))
+        await message.add_reaction('🔴')
+        await message.add_reaction('🟠')
+        await message.add_reaction('🟡')
+        await message.add_reaction('🟢')
+        await message.add_reaction('🔵')
+        await message.add_reaction('🟣')
+        await message.add_reaction('🟤')
+
+        authorColor = 0
+        otherColor = 0
+
+        def colorCheckAuthor(react, user):
+            return react.message == message and user == ctx.author and (react.emoji == "🔴" or react.emoji == "🟠" or react.emoji == "🟡" or react.emoji ==  "🟢" or react.emoji == "🔵" or react.emoji ==  "🟣" or react.emoji == "🟤")
+
+        color = await bot.wait_for('reaction_add', timeout=60, check=colorCheckAuthor)
+        color = color[0].emoji
+        if color == '🔴':
+            authorColor = 0
+        elif color == '🟠':
+            authorColor = 1
+        elif color == '🟡':
+            authorColor = 2
+        elif color == '🟢':
+            authorColor = 3
+        elif color == '🔵':
+            authorColor = 4
+        elif color == '🟣':
+            authorColor = 5
+        else:
+            authorColor = 6
+
+        await message.edit(embed=discord.Embed(title="Connect Four", description="<@" + str(id) + ">, choose which color you would like to be."))
+
+        def colorCheckAuthor(react, user):
+            return react.message == message and user.id == id and (react.emoji == "🔴" or react.emoji == "🟠" or react.emoji == "🟡" or react.emoji ==  "🟢" or react.emoji == "🔵" or react.emoji ==  "🟣" or react.emoji == "🟤")
+
+        valid = False
+        while not valid:
+            color = await bot.wait_for('reaction_add', timeout=60, check=colorCheckAuthor)
+            color = color[0].emoji
+            if color == '🔴':
+                otherColor = 0
+            elif color == '🟠':
+                otherColor = 1
+            elif color == '🟡':
+                otherColor = 2
+            elif color == '🟢':
+                otherColor = 3
+            elif color == '🔵':
+                otherColor = 4
+            elif color == '🟣':
+                otherColor = 5
+            else:
+                otherColor = 6
+            if otherColor == authorColor:
+                await ctx.channel.send("<@" + str(id) + ">, choose a different color.")
+            else:
+                valid = True
+
+        if reaction == '1️⃣':
+            player1Color = otherColor
+            player2Color = authorColor
+        else:
+            player1Color = authorColor
+            player2Color = otherColor
+
         winnerExists = False
         #rowArray = ['🇦 ', '🇧 ', '🇨 ', '🇩 ', '🇪 ', '🇫 ', '🇬 ']
         height = 6
@@ -113,10 +192,9 @@ async def start_command(ctx, *args):
         playerTurn = 0
 
         result = 0
-        firstPass = True
         while not winnerExists:
             
-            playerStr = "🔴 <@" + str(playerIDs[0]) + ">\n🟡 <@" + str(playerIDs[1]) + ">"
+            playerStr = playerColors[player1Color] + "<@" + str(playerIDs[0]) + ">\n" + playerColors[player2Color] + "<@" + str(playerIDs[1]) + ">"
 
             gameBoardStr = ""
 
@@ -126,19 +204,16 @@ async def start_command(ctx, *args):
                     if gameBoard[row][column] == 0:
                         gameBoardStr += "⚪ "
                     elif gameBoard[row][column] == 1:
-                        gameBoardStr += "🔴 "
+                        gameBoardStr += playerColors[player1Color]
                     else:
-                        gameBoardStr += "🟡 "
+                        gameBoardStr += playerColors[player2Color]
                 gameBoardStr += "\n"
             gameBoardStr += bottomRow
             
             embedVar = discord.Embed(title="Connect Four", description=playerStr + "\n\n" + gameBoardStr)
             embedVar.set_footer(text="Input the column number to place a piece.")
 
-            if firstPass:
-                message = await ctx.channel.send(embed=embedVar)
-            else:
-                await message.edit(embed=embedVar)
+            message = await ctx.channel.send(content="<@" + str(playerIDs[playerTurn]) + ">, it is your turn.", embed=embedVar)
 
             def playerCheck(m):
                 return m.channel == ctx.channel and m.author.id == playerIDs[playerTurn]
@@ -169,11 +244,11 @@ async def start_command(ctx, *args):
                 except asyncio.TimeoutError:
                     playerStr = "<@" + str(playerIDs[(playerTurn + 1) % 2]) + "> won by timeout."
                     if playerIDs[(playerTurn + 1) % 2] == 0:
-                        embedVar = discord.Embed(title="Connect Four", description=playerStr + "\n\n" + gameBoardStr, color=0xDD2E44)
+                        embedVar = discord.Embed(title="Connect Four", description=playerStr + "\n\n" + gameBoardStr, color=hexColors[player1Color])
                         embedVar.set_footer(text="Input the column number to place a piece.")
                         await message.edit(embed=embedVar)
                     else:
-                        embedVar = discord.Embed(title="Connect Four", description=playerStr + "\n\n" + gameBoardStr, color=0xFDCB58)
+                        embedVar = discord.Embed(title="Connect Four", description=playerStr + "\n\n" + gameBoardStr, color=hexColors[player2Color])
                         embedVar.set_footer(text="Input the column number to place a piece.")
                         await message.edit(embed=embedVar)
                     return
@@ -211,22 +286,22 @@ async def start_command(ctx, *args):
                 if gameBoard[row][column] == 0:
                     gameBoardStr += "⚪ "
                 elif gameBoard[row][column] == 1:
-                    gameBoardStr += "🔴 "
+                    gameBoardStr += playerColors[player1Color]
                 else:
-                    gameBoardStr += "🟡 "
+                    gameBoardStr += playerColors[player2Color]
             gameBoardStr += "\n"
         gameBoardStr += bottomRow
 
         if result == 1:
             playerStr = "<@" + str(playerIDs[playerTurn]) + "> is the winner!"
-            embedVar = discord.Embed(title="Connect Four", description=playerStr + "\n\n" + gameBoardStr, color=0xDD2E44)
+            embedVar = discord.Embed(title="Connect Four", description=playerStr + "\n\n" + gameBoardStr, color=hexColors[player1Color])
             embedVar.set_footer(text="Input the column number to place a piece.")
             await ctx.channel.send(embed=embedVar)
             return
 
         elif result == 2:
             playerStr = "<@" + str(playerIDs[playerTurn]) + "> is the winner!"
-            embedVar = discord.Embed(title="Connect Four", description=playerStr + "\n\n" + gameBoardStr, color=0xFDCB58)
+            embedVar = discord.Embed(title="Connect Four", description=playerStr + "\n\n" + gameBoardStr, color=hexColors[player2Color])
             embedVar.set_footer(text="Input the column number to place a piece.")
             await ctx.channel.send(embed=embedVar)
             return
